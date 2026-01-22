@@ -164,7 +164,7 @@ def save_plot(rows: List[Dict[str, Any]], out_png: str, out_pdf: Optional[str] =
 # =============================
 if __name__ == "__main__":
     # 改成你的总目录（里面包含 global_step_x 子文件夹）
-    ROOT_DIR = "/data/boyan/DeepMath/models/deepmath/qwen3-1.7B-Base-qwen3-8B-nonthinking-new"
+    ROOT_DIR = "/data/boyan/DeepMath/models/deepmath/qwen3-1.7B-Base-qwen3-4B-nonthinking"
 
     # 输出目录（默认放到 ROOT_DIR 下面）
     OUT_DIR = ROOT_DIR
