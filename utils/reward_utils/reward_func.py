@@ -32,13 +32,14 @@ def verify_ray(
 
 @ray.remote
 def reward_func(data_source, solution_str, ground_truth, extra_info) -> float:
-    if "</think>" in solution_str:
-        # to avoid the case that boxed appears in both the thinking and the solution
-        solution_str = solution_str.split("</think>")[-1]
-        format_correct = True
-    else:
-        # format reward
-        format_correct = False
+    # if "</think>" in solution_str:
+    #     # to avoid the case that boxed appears in both the thinking and the solution
+    #     solution_str = solution_str.split("</think>")[-1]
+    #     format_correct = True
+    # else:
+    #     # format reward
+    #     format_correct = False
+    format_correct = True
 
     omi_pred = None
     omi_correct = False

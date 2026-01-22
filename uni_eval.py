@@ -555,6 +555,7 @@ def eval(
             ],
             tokenize=False,
             add_generation_prompt=True,
+            enable_thinking=False,
         )
         for td in test_dataset
     ]
@@ -569,6 +570,7 @@ def eval(
             ],
             tokenize=True,
             add_generation_prompt=True,
+            enable_thinking=False,
         ))
         for td in test_dataset
     ]
@@ -614,7 +616,9 @@ def eval(
 
     # compute correctness and pass@k (sample-level)
     ks = [2 ** e for e in range(0, 7)]
-    ks = [k for k in ks if (2 * k) <= n or k == 1]
+    ks = [k for k in ks if k <= n or k == 1]
+
+    print(ks)
     for g in tqdm(generations, desc="computing correctness", total=len(generations)):
         gt_answer = g[answer_key]
         if isinstance(test_dataset.features[answer_key], ClassLabel):

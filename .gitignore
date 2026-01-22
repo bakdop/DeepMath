@@ -178,3 +178,8 @@ cython_debug/
 .vscode
 .DS_Store
 test*
+
+output
+scripts/outputs
+wandb
+evaluation

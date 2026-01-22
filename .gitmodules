@@ -1,4 +1,4 @@
 [submodule "verl"]
 	path = verl
-	url = https://github.com/zwhe99/verl.git
+	url = https://github.com/bakdop/verl.git
 	branch = deepmath
