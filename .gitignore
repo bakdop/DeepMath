@@ -179,7 +179,19 @@ cython_debug/
 .DS_Store
 test*
 
+data
+experiments
 output
 scripts/outputs
 wandb
 evaluation
+models/
+CLAME.md
+reference_*
+*.err
+*.out
+*.log
+CLAUDE.md
+outputs
+distribution_logs
+scripts

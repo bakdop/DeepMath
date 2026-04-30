@@ -1,17 +1,17 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=h200_job
-#SBATCH --constraint=h200
+#SBATCH --job-name=opd
+#SBATCH --constraint=a100
 #SBATCH --nodes=1
 #SBATCH --ntasks-per-node=1
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=400GB
-#SBATCH --time=48:00:00
-#SBATCH --gres=gpu:h200:4
+#SBATCH --time=24:00:00
+#SBATCH --gres=gpu:a100:4
 #SBATCH --account=torch_pr_520_tandon_priority
 #SBATCH --output=%x_%j.out
 #SBATCH --error=%x_%j.err
 
-source /scratch/bl4363/uvenvs/dm/bin/activate
+source /scratch/bl4363/uvenvs/deepmath/bin/activate
 
 set -e
 set -u
@@ -20,7 +20,7 @@ set -u
 WORK_DIR=/scratch/bl4363/DeepMath
 MODEL_DIR=$WORK_DIR/models
 DATA_DIR=/scratch/bl4363/DeepMath/data
-RUN_NAME=qwen3-1.7B-Base-qwen3-4B-nonthinking-grpo-neos
+RUN_NAME=qwen3-1.7B-Base-qwen3-8B-opd
 mkdir -p $MODEL_DIR/$RUN_NAME
 
 # ray job submit --address="http://127.0.0.1:8265" \
@@ -57,11 +57,11 @@ export VLLM_ATTENTION_BACKEND=XFORMERS
 export ARNOLD_WORKER_NUM=1 # number of nodes you want to use
 # export WANDB_RESUME=never
 
-# on_policy_distillation
-ADV_ESTIMATOR=grpo
+
+ADV_ESTIMATOR=on_policy_distillation
 MAX_RESPONSE_LENGTH=8192
 MODEL_PATH=/scratch/bl4363/models/Qwen3-1.7B-Base
-REF_MODEL_PATH=/scratch/bl4363/models/Qwen3-4B
+REF_MODEL_PATH=/scratch/bl4363/models/Qwen3-8B
 KL_LOSS_COEF=0.0
 OVERLONG_ENABLE=False
 OVERLONG_BUFFER=1024
@@ -72,7 +72,7 @@ python3 -m verl.trainer.main_ppo \
     data.prompt_key=prompt \
     data.truncation='left' \
     data.rm_system_prompt=False \
-    data.train_batch_size=256 \
+    data.train_batch_size=128 \
     data.val_batch_size=128 \
     data.max_prompt_length=2048 \
     data.max_response_length=$MAX_RESPONSE_LENGTH \
@@ -82,13 +82,13 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.ref.path=$REF_MODEL_PATH \
     actor_rollout_ref.model.use_remove_padding=False \
     actor_rollout_ref.model.enable_gradient_checkpointing=True \
-    +actor_rollout_ref.model.override_config.attention_dropout=0. \
+    +ctor_rollout_ref.model.override_config.attention_dropout=0. \
     +actor_rollout_ref.model.override_config.embd_pdrop=0. \
     +actor_rollout_ref.model.override_config.resid_pdrop=0. \
     actor_rollout_ref.actor.optim.lr=1e-6 \
     actor_rollout_ref.actor.ppo_mini_batch_size=$PPO_MINI_BATCH_SIZE \
     actor_rollout_ref.actor.use_dynamic_bsz=False \
-    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=2 \
+    actor_rollout_ref.actor.ppo_micro_batch_size_per_gpu=1 \
     actor_rollout_ref.actor.ulysses_sequence_parallel_size=1 \
     actor_rollout_ref.actor.use_kl_loss=True \
     actor_rollout_ref.actor.kl_loss_coef=$KL_LOSS_COEF \
@@ -101,33 +101,34 @@ python3 -m verl.trainer.main_ppo \
     actor_rollout_ref.rollout.tensor_model_parallel_size=1 \
     actor_rollout_ref.rollout.gpu_memory_utilization=0.8 \
     actor_rollout_ref.rollout.enable_chunked_prefill=True \
-    actor_rollout_ref.rollout.max_num_batched_tokens=20480 \
+    actor_rollout_ref.rollout.max_num_batched_tokens=32768 \
     actor_rollout_ref.rollout.disable_log_stats=True \
-    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=4 \
+    actor_rollout_ref.rollout.log_prob_micro_batch_size_per_gpu=2 \
     actor_rollout_ref.rollout.enforce_eager=True \
     actor_rollout_ref.ref.log_prob_use_dynamic_bsz=False \
     actor_rollout_ref.ref.fsdp_config.param_offload=False \
-    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=4 \
+    actor_rollout_ref.ref.log_prob_micro_batch_size_per_gpu=2 \
     custom_reward_function.path=$WORK_DIR/utils/reward_utils/reward_func.py \
     custom_reward_function.name=reward_func \
     custom_reward_function.overlong_buffer.enable=$OVERLONG_ENABLE \
     trainer.critic_warmup=0 \
-    trainer.project_name=deepmath_new \
+    trainer.project_name=deepmath-new \
     trainer.experiment_name=$RUN_NAME \
-    trainer.default_local_dir=$MODEL_DIR/deepmath_new/$RUN_NAME \
+    trainer.default_local_dir=$MODEL_DIR/deepmath-new/$RUN_NAME \
     trainer.logger=['console','wandb'] \
     +trainer.val_before_train=True \
     trainer.n_gpus_per_node=4 \
     trainer.nnodes=$ARNOLD_WORKER_NUM \
-    trainer.save_freq=4 \
+    trainer.save_freq=10 \
     trainer.save_rollout=True \
-    trainer.resume_from_path=/scratch/bl4363/DeepMath/models/deepmath_new/qwen3-1.7B-Base-qwen3-4B-nonthinking/global_step_20 \
+    trainer.resume_mode=disable \
     trainer.test_freq=2 \
     trainer.total_epochs=999999 \
     trainer.total_training_steps=1800 2>&1 | tee -a $MODEL_DIR/$RUN_NAME/train.log
-    # trainer.resume_mode=disable \
-#
+   
+        # trainer.resume_mode=disable \
 
+    # trainer.resume_from_path=/scratch/bl4363/DeepMath/models/deepmath-new/qwen3-1.7B-Base-qwen3-8B-nonthinking-neos/global_step_12 \
 
 # custom_reward_function.overlong_buffer.len=$OVERLONG_BUFFER \
 # custom_reward_function.overlong_buffer.penalty_factor=1.0 \
